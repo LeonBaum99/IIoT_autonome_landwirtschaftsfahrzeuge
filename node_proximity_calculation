@@ -1,0 +1,65 @@
+// Context.data for saving values in the function code
+context.data = context.data || {};
+
+var result = null;
+//var min_allowed_distance = 0.0065165; // Proximity-Stopp testen
+var min_allowed_distance = 0.006 // Wenn kein Proximity-Stopp gewünscht
+
+switch (msg.topic) {
+    case "group4/autonomesfahren/gps_fahrzeuge/fahrzeug1":
+        context.data.f1 = msg.payload;
+        msg = null;
+        break;
+    case "group4/autonomesfahren/gps_fahrzeuge/fahrzeug2":
+        context.data.f2 = msg.payload;
+        msg = null;
+        break;
+    
+    default:
+        msg = null;
+    	break;
+
+}
+
+if(context.data.f1 != null && context.data.f2 != null ) {
+	var f1_lat = context.data.f1.gps.latitude;
+    var f1_lon = context.data.f1.gps.longitude;
+    var f2_lat = context.data.f2.gps.latitude;
+    var f2_lon = context.data.f2.gps.longitude;
+    
+    context.data=null;
+	
+    var distance = haversineDistance(f1_lat, f1_lon, f2_lat, f2_lon);
+    if(distance<min_allowed_distance){
+        return {payload: "Alert!"};
+    } else return {payload: roundToDecimalPlaces(distance, 5) * 1000};
+    
+} else return msg;
+
+//Calculate distance between two geocoordinates
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth radius in kilometers
+
+    const dLat = radians(lat2 - lat1);
+    const dLon = radians(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distance = R * c; // Distance in kilometers
+
+    return distance;
+}
+
+// Function to convert degrees to radians
+function radians(degrees) {
+    return degrees * (Math.PI / 180);
+}
+
+function roundToDecimalPlaces(num, dec) {
+    let tenPow = Math.pow(10, dec);
+    return Math.round(num * tenPow) / tenPow;
+}
